@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Image Optimizer</title>
+    <style>
+        :root {
+            --primary-color: #4a6cf7;
+            --secondary-color: #6b7ff7;
+            --dark-color: #333;
+            --light-color: #f4f7fe;
+            --success-color: #28a745;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .upload-section, .preview-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: var(--primary-color);
+            background-color: rgba(74, 108, 247, 0.05);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .settings-section {
+            margin-top: 20px;
+        }
+        
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .range-value {
+            display: inline-block;
+            width: 50px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ccc;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .preview-container {
+                flex-direction: row;
+            }
+        }
+        
+        .image-preview {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .preview-title {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .preview-img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .image-info {
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-download {
+            background-color: var(--success-color);
+        }
+        
+        .btn-download:hover {
+            background-color: #218838;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Responsive Image Optimizer</h1>
+            <p class="description">Upload, optimize, and download your images with various settings to reduce file size while maintaining quality.</p>
+        </header>
+        
+        <main class="main-content">
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p class="upload-text">Drag & drop your image here or click to browse</p>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <button class="btn" id="browseBtn">Browse Files</button>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Optimization Settings</h3>
+                    
+                    <div class="setting-group">
+                        <label for="quality">Quality: <span id="qualityValue" class="range-value">80</span>%</label>
+                        <input type="range" id="quality" min="10" max="100" value="80">
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label for="width">Width: <span id="widthValue" class="range-value">800</span>px</label>
+                        <input type="range" id="width" min="100" max="2000" value="800">
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label for="format">Output Format:</label>
+                        <select id="format">
+                            <option value="original">Original Format</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                            <option value="webp">WebP</option>
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn" id="optimizeBtn" disabled>Optimize Image</button>
+                        <button class="btn btn-download" id="downloadBtn" disabled>
+                            <span id="downloadText">Download</span>
+                            <span id="downloadLoading" class="loading hidden"></span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="preview-section">
+                <div class="preview-container">
+                    <div class="image-preview">
+                        <h3 class="preview-title">Original Image</h3>
+                        <div id="originalPreview" class="preview-placeholder">
+                            <p>No image uploaded</p>
+                        </div>
+                    </div>
+                    
+                    <div class="image-preview">
+                        <h3 class="preview-title">Optimized Image</h3>
+                        <div id="optimizedPreview" class="preview-placeholder">
+                            <p>Optimized preview will appear here</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="image-info">
+                    <h3>Image Information</h3>
+                    <div class="info-item">
+                        <span class="info-label">Original Size:</span>
+                        <span id="originalSize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Optimized Size:</span>
+                        <span id="optimizedSize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Size Reduction:</span>
+                        <span id="sizeReduction">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Dimensions:</span>
+                        <span id="dimensions">-</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2023 Responsive Image Optimizer Tool | All processing happens in your browser</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const qualitySlider = document.getElementById('quality');
+            const qualityValue = document.getElementById('qualityValue');
+            const widthSlider = document.getElementById('width');
+            const widthValue = document.getElementById('widthValue');
+            const formatSelect = document.getElementById('format');
+            const optimizeBtn = document.getElementById('optimizeBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadText = document.getElementById('downloadText');
+            const downloadLoading = document.getElementById('downloadLoading');
+            const originalPreview = document.getElementById('originalPreview');
+            const optimizedPreview = document.getElementById('optimizedPreview');
+            const originalSize = document.getElementById('originalSize');
+            const optimizedSize = document.getElementById('optimizedSize');
+            const sizeReduction = document.getElementById('sizeReduction');
+            const dimensions = document.getElementById('dimensions');
+            
+            // Variables
+            let originalImage = null;
+            let optimizedImageBlob = null;
+            let originalFileSize = 0;
+            let optimizedFileSize = 0;
+            
+            // Event Listeners
+            browseBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            qualitySlider.addEventListener('input', updateQualityValue);
+            widthSlider.addEventListener('input', updateWidthValue);
+            optimizeBtn.addEventListener('click', optimizeImage);
+            downloadBtn.addEventListener('click', downloadImage);
+            
+            // Functions
+            function handleDragOver(e) {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            }
+            
+            function handleDragLeave(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+            }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            }
+            
+            function handleFileSelect() {
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    
+                    // Check if file is an image
+                    if (!file.type.match('image.*')) {
+                        alert('Please select an image file.');
+                        return;
+                    }
+                    
+                    // Update original file size
+                    originalFileSize = file.size;
+                    originalSize.textContent = formatFileSize(originalFileSize);
+                    
+                    // Display original image
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        originalImage = new Image();
+                        originalImage.onload = function() {
+                            // Update width slider max value
+                            widthSlider.max = Math.min(originalImage.width, 2000);
+                            widthSlider.value = Math.min(800, originalImage.width);
+                            updateWidthValue();
+                            
+                            // Display original image
+                            displayImage(originalPreview, e.target.result, originalImage.width, originalImage.height);
+                            
+                            // Update dimensions
+                            dimensions.textContent = `${originalImage.width} × ${originalImage.height}`;
+                            
+                            // Enable optimize button
+                            optimizeBtn.disabled = false;
+                        };
+                        originalImage.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+            
+            function updateQualityValue() {
+                qualityValue.textContent = qualitySlider.value;
+            }
+            
+            function updateWidthValue() {
+                widthValue.textContent = widthSlider.value;
+            }
+            
+            function optimizeImage() {
+                if (!originalImage) return;
+                
+                // Show loading state
+                downloadBtn.disabled = true;
+                downloadText.textContent = 'Processing...';
+                downloadLoading.classList.remove('hidden');
+                
+                // Get optimization settings
+                const quality = parseInt(qualitySlider.value) / 100;
+                const width = parseInt(widthSlider.value);
+                const format = formatSelect.value;
+                
+                // Calculate height to maintain aspect ratio
+                const height = Math.round((originalImage.height / originalImage.width) * width);
+                
+                // Create canvas for image processing
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw image on canvas with new dimensions
+                ctx.drawImage(originalImage, 0, 0, width, height);
+                
+                // Convert to blob with selected format and quality
+                let mimeType = 'image/jpeg';
+                if (format === 'png') mimeType = 'image/png';
+                else if (format === 'webp') mimeType = 'image/webp';
+                else if (originalImage.src.startsWith('data:image/png')) mimeType = 'image/png';
+                
+                canvas.toBlob(function(blob) {
+                    optimizedImageBlob = blob;
+                    optimizedFileSize = blob.size;
+                    
+                    // Display optimized image
+                    const optimizedUrl = URL.createObjectURL(blob);
+                    displayImage(optimizedPreview, optimizedUrl, width, height);
+                    
+                    // Update image info
+                    optimizedSize.textContent = formatFileSize(optimizedFileSize);
+                    
+                    const reduction = ((originalFileSize - optimizedFileSize) / originalFileSize * 100).toFixed(1);
+                    sizeReduction.textContent = `${reduction}%`;
+                    
+                    // Enable download button
+                    downloadBtn.disabled = false;
+                    downloadText.textContent = 'Download';
+                    downloadLoading.classList.add('hidden');
+                }, mimeType, quality);
+            }
+            
+            function displayImage(container, src, width, height) {
+                container.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = 'Preview';
+                img.className = 'preview-img';
+                container.appendChild(img);
+                
+                const info = document.createElement('p');
+                info.textContent = `${width} × ${height}`;
+                info.style.marginTop = '10px';
+                info.style.fontSize = '14px';
+                info.style.color = '#666';
+                container.appendChild(info);
+            }
+            
+            function downloadImage() {
+                if (!optimizedImageBlob) return;
+                
+                // Create download link
+                const url = URL.createObjectURL(optimizedImageBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Set filename with appropriate extension
+                let extension = 'jpg';
+                if (formatSelect.value === 'png') extension = 'png';
+                else if (formatSelect.value === 'webp') extension = 'webp';
+                else if (originalImage.src.startsWith('data:image/png')) extension = 'png';
+                
+                a.download = `optimized-image.${extension}`;
+                
+                // Trigger download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Clean up
+                URL.revokeObjectURL(url);
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+            
+            // Initialize values
+            updateQualityValue();
+            updateWidthValue();
+        });
+    </script>
+</body>
+</html>
