@@ -129,6 +129,13 @@
             color: white;
         }
 
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .optimizer-section {
             background-color: white;
             border-radius: var(--border-radius);
@@ -173,6 +180,11 @@
         }
 
         .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: #f0f4ff;
+        }
+
+        .upload-area.dragover {
             border-color: var(--primary-color);
             background-color: #f0f4ff;
         }
@@ -463,6 +475,11 @@
             cursor: pointer;
         }
 
+        .savings {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .mobile-menu-btn {
                 display: block;
@@ -531,10 +548,11 @@
             <div class="ad-placeholder">
                 <!-- Google AdSense Ad Unit -->
                 <!-- Replace with your AdSense code -->
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-8921704932010891/1446193668
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+                <!-- Image Optimizer Ad -->
                 <ins class="adsbygoogle"
                     style="display:block"
-                    data-ad-client="ca-app-pub-8921704932010891/1446193668"
+                    data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
                     data-ad-slot="XXXXXXXXXX"
                     data-ad-format="auto"
                     data-full-width-responsive="true"></ins>
@@ -579,6 +597,7 @@
                             <div class="image-info">
                                 <span id="optimizedDimensions">-</span>
                                 <span id="optimizedFormat">-</span>
+                                <span id="savings" class="savings"></span>
                             </div>
                             <div class="progress-bar">
                                 <div class="progress" id="optimizationProgress"></div>
@@ -635,10 +654,12 @@
             <div class="ad-placeholder">
                 <!-- Google AdSense Ad Unit -->
                 <!-- Replace with your AdSense code -->
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-8921704932010891/1446193668"
+ crossorigin="anonymous"></script>
                 <ins class="adsbygoogle"
                     style="display:block"
-                    data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                    data-ad-client="ca-app-pub-8921704932010891/1446193668"
+"
                     data-ad-slot="XXXXXXXXXX"
                     data-ad-format="auto"
                     data-full-width-responsive="true"></ins>
@@ -740,6 +761,7 @@
         const resizeWidth = document.getElementById('resizeWidth');
         const resizeHeight = document.getElementById('resizeHeight');
         const maintainAspectRatio = document.getElementById('maintainAspectRatio');
+        const savings = document.getElementById('savings');
 
         // Variables
         let currentImage = null;
@@ -748,22 +770,20 @@
         let selectedFormat = 'original';
         let originalWidth = 0;
         let originalHeight = 0;
+        let originalFileSize = 0;
 
         // Event Listeners
         uploadArea.addEventListener('click', () => fileInput.click());
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#4a6cf7';
-            uploadArea.style.backgroundColor = '#f0f4ff';
+            uploadArea.classList.add('dragover');
         });
         uploadArea.addEventListener('dragleave', () => {
-            uploadArea.style.borderColor = '#d1d8e0';
-            uploadArea.style.backgroundColor = '#f8fafc';
+            uploadArea.classList.remove('dragover');
         });
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#d1d8e0';
-            uploadArea.style.backgroundColor = '#f8fafc';
+            uploadArea.classList.remove('dragover');
             
             if (e.dataTransfer.files.length) {
                 handleImageUpload(e.dataTransfer.files[0]);
@@ -819,6 +839,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 originalImageData = e.target.result;
+                originalFileSize = file.size;
                 currentImage = new Image();
                 currentImage.onload = () => {
                     originalWidth = currentImage.width;
@@ -838,6 +859,7 @@
                     optimizedSize.textContent = '0 KB';
                     optimizedDimensions.textContent = '-';
                     optimizedFormat.textContent = '-';
+                    savings.textContent = '';
                     downloadBtn.disabled = true;
                     optimizationProgress.style.width = '0%';
                 };
@@ -852,7 +874,7 @@
                 return;
             }
 
-            // Simulate optimization process
+            // Show progress
             optimizationProgress.style.width = '0%';
             let progress = 0;
             const interval = setInterval(() => {
@@ -862,23 +884,59 @@
                 if (progress >= 100) {
                     clearInterval(interval);
                     
-                    // Calculate simulated file size reduction
-                    const originalSizeValue = parseFloat(originalSize.textContent);
-                    const quality = parseInt(qualitySlider.value) / 100;
-                    const simulatedReduction = 1 - (0.3 + 0.7 * quality); // More compression at lower quality
-                    const optimizedSizeValue = originalSizeValue * (1 - simulatedReduction);
-                    
                     // Get resize dimensions
                     let outputWidth = parseInt(resizeWidth.value) || originalWidth;
                     let outputHeight = parseInt(resizeHeight.value) || originalHeight;
                     
-                    optimizedSize.textContent = formatFileSize(optimizedSizeValue * 1024); // Convert to bytes
-                    optimizedDimensions.textContent = `${outputWidth} × ${outputHeight}`;
-                    optimizedFormat.textContent = selectedFormat === 'original' ? originalFormat.textContent : selectedFormat.toUpperCase();
+                    // Create canvas for optimization
+                    const canvas = document.createElement('canvas');
+                    canvas.width = outputWidth;
+                    canvas.height = outputHeight;
+                    const ctx = canvas.getContext('2d');
                     
-                    // For demo purposes, we'll just use the original image
-                    // In a real implementation, you would generate the optimized version
-                    optimizedPreview.src = originalImageData;
+                    // Draw image on canvas with new dimensions
+                    ctx.drawImage(currentImage, 0, 0, outputWidth, outputHeight);
+                    
+                    // Get quality value
+                    const quality = parseInt(qualitySlider.value) / 100;
+                    
+                    // Determine output format
+                    let outputFormat = selectedFormat === 'original' ? 
+                        originalFormat.textContent.toLowerCase() : selectedFormat;
+                    
+                    // Convert to data URL with appropriate format and quality
+                    let mimeType;
+                    switch(outputFormat) {
+                        case 'jpeg':
+                            mimeType = 'image/jpeg';
+                            break;
+                        case 'png':
+                            mimeType = 'image/png';
+                            break;
+                        case 'webp':
+                            mimeType = 'image/webp';
+                            break;
+                        default:
+                            mimeType = 'image/jpeg'; // Default fallback
+                    }
+                    
+                    // Generate optimized image
+                    optimizedImageData = canvas.toDataURL(mimeType, quality);
+                    
+                    // Calculate file size (approximate)
+                    const base64Data = optimizedImageData.split(',')[1];
+                    const binaryData = atob(base64Data);
+                    const optimizedFileSize = binaryData.length;
+                    
+                    // Update UI with optimized image
+                    optimizedPreview.src = optimizedImageData;
+                    optimizedSize.textContent = formatFileSize(optimizedFileSize);
+                    optimizedDimensions.textContent = `${outputWidth} × ${outputHeight}`;
+                    optimizedFormat.textContent = outputFormat.toUpperCase();
+                    
+                    // Calculate and display savings
+                    const savingsPercentage = ((originalFileSize - optimizedFileSize) / originalFileSize * 100).toFixed(1);
+                    savings.textContent = `${savingsPercentage}% smaller`;
                     
                     downloadBtn.disabled = false;
                     
@@ -892,13 +950,29 @@
         }
 
         function downloadImage() {
-            if (!optimizedPreview.src) return;
+            if (!optimizedImageData) return;
             
-            // In a real implementation, you would use the actual optimized image data
-            // For this demo, we'll create a download link with the original image
+            // Create download link with optimized image
             const link = document.createElement('a');
-            link.download = `optimized-image.${selectedFormat === 'original' ? originalFormat.textContent.toLowerCase() : selectedFormat}`;
-            link.href = optimizedPreview.src;
+            
+            // Determine file extension
+            let fileExtension;
+            switch(selectedFormat) {
+                case 'jpeg':
+                    fileExtension = 'jpg';
+                    break;
+                case 'png':
+                    fileExtension = 'png';
+                    break;
+                case 'webp':
+                    fileExtension = 'webp';
+                    break;
+                default:
+                    fileExtension = originalFormat.textContent.toLowerCase();
+            }
+            
+            link.download = `optimized-image.${fileExtension}`;
+            link.href = optimizedImageData;
             link.click();
         }
 
